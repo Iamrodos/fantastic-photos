@@ -47,7 +47,7 @@ except ImportError:
 
 from multiprocessing import Pool, cpu_count
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 PORT = 8756
 IMG_EXT = {".jpg", ".jpeg", ".png", ".heic", ".tif", ".tiff", ".webp", ".bmp"}
@@ -1474,13 +1474,47 @@ class Server(socketserver.ThreadingTCPServer):
     daemon_threads = True
 
 
+def start_server():
+    """Bind the first free port, so a second copy doesn't fail obscurely."""
+    last = None
+    for port in range(PORT, PORT + 10):
+        try:
+            return Server(("127.0.0.1", port), Handler), port
+        except OSError as e:
+            last = e
+            continue
+    raise SystemExit(f"Could not find a free port between {PORT} and {PORT + 9}: {last}")
+
+
+def banner(url, port):
+    # Plain ASCII: box-drawing characters turn into mojibake in older Windows
+    # consoles, and this is the one message that has to be readable.
+    line = "=" * 58
+    print()
+    print("  " + line)
+    print("   Fantastic Photos is running.")
+    print()
+    print("   Open this address in your browser:")
+    print()
+    print(f"       {url}")
+    print()
+    if port != PORT:
+        print(f"   (port {PORT} was busy, so this copy is on {port})")
+        print()
+    print("   Keep this window open while you use it.")
+    print("   Press Ctrl+C here, or just close the window, to stop.")
+    print("  " + line)
+    print()
+
+
 if __name__ == "__main__":
     STATE["sources"] = []
-    url = f"http://127.0.0.1:{PORT}/"
-    print(f"Fantastic Photos running at {url}")
-    print("Press Ctrl+C to stop.")
+    srv, port = start_server()
+    url = f"http://localhost:{port}/"
+    banner(url, port)
     threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
-        Server(("127.0.0.1", PORT), Handler).serve_forever()
+        srv.serve_forever()
     except KeyboardInterrupt:
-        print("\nstopped")
+        print("\n  Stopped. Close this window, or run it again to restart.")
+        print(f"  (it was at {url})\n")
