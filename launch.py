@@ -26,7 +26,7 @@ BACKUP = os.path.join(HERE, "photomerge.previous.py")
 #   S3:     https://<bucket>.s3.<region>.amazonaws.com/photomerge.py
 UPDATE_URL = os.environ.get(
     "PHOTOMERGE_UPDATE_URL",
-    "https://raw.githubusercontent.com/CHANGE-ME/photo-merge/main/photomerge.py",
+    "https://raw.githubusercontent.com/Iamrodos/photo-merge/main/photomerge.py",
 )
 
 TIMEOUT = 6
