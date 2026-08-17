@@ -47,7 +47,7 @@ except ImportError:
 
 from multiprocessing import Pool, cpu_count
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 
 PORT = 8756
 IMG_EXT = {".jpg", ".jpeg", ".png", ".heic", ".tif", ".tiff", ".webp", ".bmp"}
@@ -815,50 +815,72 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send(200, {"added": added, "bad": bad,
                                     "sources": STATE["sources"]})
         if u.path == "/api/locate":
-            # Browsers refuse to reveal a dragged folder's path. We get its NAME
-            # and a few of the filenames inside it, so search the likely roots
-            # for a directory that matches both.
+            # Browsers refuse to reveal a dragged folder's path, on every OS.
+            # We do get its NAME and some of the filenames inside it, so search
+            # the places photos actually live for a directory matching both.
             name = (data.get("name") or "").strip()
             kids = set(data.get("children") or [])
             if not name:
-                return self._send(200, {"matches": [], "reason": "no folder name"})
-            roots, seen = [], set()
-            for r in ([os.path.dirname(x) for x in STATE["sources"]] +
-                      [os.path.expanduser("~/Desktop"), os.path.expanduser("~/Pictures"),
-                       os.path.expanduser("~/Documents"), os.path.expanduser("~/Downloads"),
-                       os.path.expanduser("~/projects"), "/Volumes",
-                       os.path.expanduser("~")]):
+                return self._send(200, {"matches": [], "searched": [],
+                                        "reason": "the browser gave no folder name"})
+
+            home = os.path.expanduser("~")
+            roots = [os.path.dirname(x) for x in STATE["sources"]]
+            for sub in ("Pictures", "Desktop", "Downloads", "Documents",
+                        "OneDrive", "Photos", "projects"):
+                roots.append(os.path.join(home, sub))
+            roots.append(home)
+            if os.name == "nt":
+                for d in "DEFGHIJKLMNOPQRSTUVWXYZC":     # removable drives first
+                    q = f"{d}:\\"
+                    if os.path.isdir(q):
+                        roots.append(q)
+            else:
+                roots += ["/Volumes", "/media", "/mnt"]
+
+            seen, ordered = set(), []
+            for r in roots:
                 if r and os.path.isdir(r) and r not in seen:
                     seen.add(r)
-                    roots.append(r)
-            matches, scanned = [], 0
+                    ordered.append(r)
+
             SKIP = {"Library", "node_modules", ".git", "Applications", "System",
-                    ".Trash", "venv", ".venv", "__pycache__"}
-            for root in roots:
-                for dirpath, dirs, _files in os.walk(root):
-                    depth = dirpath[len(root):].count(os.sep)
-                    if depth >= 4:
-                        dirs[:] = []
-                        continue
-                    dirs[:] = [d for d in dirs if not d.startswith(".") and d not in SKIP]
-                    scanned += 1
-                    if scanned > 40000:
-                        break
-                    if name in dirs:
-                        cand = os.path.join(dirpath, name)
-                        if cand in matches:
+                    ".Trash", "venv", ".venv", "__pycache__", "Windows",
+                    "Program Files", "Program Files (x86)", "ProgramData",
+                    "AppData", "$Recycle.Bin", "System Volume Information",
+                    "WindowsApps", "Recovery"}
+            matches, scanned, searched = [], 0, []
+            for root in ordered:
+                searched.append(root)
+                try:
+                    for dirpath, dirs, _files in os.walk(root, topdown=True):
+                        depth = dirpath[len(root):].count(os.sep)
+                        if depth >= 5:
+                            dirs[:] = []
                             continue
-                        try:
-                            inside = set(os.listdir(cand))
-                        except Exception:
-                            continue
-                        if not kids or (kids & inside):
-                            matches.append(cand)
-                            if len(matches) >= 6:
-                                break
-                if len(matches) >= 6 or scanned > 40000:
+                        dirs[:] = [d for d in dirs
+                                   if not d.startswith(".") and d not in SKIP]
+                        scanned += 1
+                        if scanned > 60000:
+                            break
+                        if name in dirs:
+                            cand = os.path.join(dirpath, name)
+                            if cand in matches:
+                                continue
+                            try:
+                                inside = set(os.listdir(cand))
+                            except Exception:
+                                continue
+                            if not kids or (kids & inside):
+                                matches.append(cand)
+                                if len(matches) >= 6:
+                                    break
+                except Exception:
+                    continue
+                if len(matches) >= 6 or scanned > 60000:
                     break
-            return self._send(200, {"matches": matches, "scanned": scanned})
+            return self._send(200, {"matches": matches, "scanned": scanned,
+                                    "searched": searched[:8], "name": name})
         if u.path == "/api/resolve":
             q = (data.get("path") or "").strip()
             if q.startswith("file://"):
@@ -1268,7 +1290,8 @@ async function locateByName(dt){
   if(e&&e.isDirectory){
    const kids=await entryChildren(e,12);
    const r=await post('/api/locate',{name:e.name,children:kids});
-   return {name:e.name, matches:r.matches||[]};
+   return {name:e.name, matches:r.matches||[], searched:r.searched||[],
+           scanned:r.scanned};
   }
  }
  return null;
@@ -1297,9 +1320,15 @@ function wireDrop(id, idle, onPaths){
     return}
    else{
     dz.classList.add('bad');
-    dz.innerHTML='Could not work out where that folder is \u2014 use the picker below.'+
-     '<div class="sub" style="margin-top:6px;font-size:11px;word-break:break-all">'+
-     dropDebug(dt)+'</div>';
+    const nm=found&&found.name?('<b>'+esc(found.name)+'</b>'):'that folder';
+    const where=(found&&found.searched&&found.searched.length)
+      ?'<br>Looked in: '+found.searched.map(esc).join(', '):'';
+    dz.innerHTML='Could not find '+nm+' on this computer. '+
+     'Use <b>+ choose folders</b> below instead \u2014 that always works.'+where+
+     '<div class="sub" style="margin-top:8px;font-size:11px;word-break:break-all;'+
+     'user-select:all;cursor:text">'+esc(dropDebug(dt))+'</div>'+
+     '<div class="sub" style="font-size:11px;margin-top:4px">'+
+     '(the grey line is diagnostic detail \u2014 select and copy it if reporting this)</div>';
     return}
   }
   dz.innerHTML=await onPaths(paths)||idle;
