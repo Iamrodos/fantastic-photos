@@ -4,9 +4,9 @@
 # dependencies = ["pillow>=10", "numpy>=1.24"]
 # ///
 """
-Photo Merge — a small local web app.
+Fantastic Photos — a small local web app for tidying photo libraries.
 
-Run it:      python3 photomerge.py
+Run it:      uv run fantastic_photos.py
 Then use it: a browser window opens at http://127.0.0.1:8756
 
 Nothing is uploaded anywhere. The server runs on your own machine and only
@@ -47,7 +47,7 @@ except ImportError:
 
 from multiprocessing import Pool, cpu_count
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 PORT = 8756
 IMG_EXT = {".jpg", ".jpeg", ".png", ".heic", ".tif", ".tiff", ".webp", ".bmp"}
@@ -932,7 +932,7 @@ def summary():
 
 
 PAGE = r"""<!doctype html><html><head><meta charset="utf-8">
-<title>Photo Merge</title>
+<title>Fantastic Photos</title>
 <style>
 :root{--bd:#e3e3df;--mut:#6b6b66;--acc:#2f6f4f;--warn:#9d1111}
 *{box-sizing:border-box}
@@ -1027,7 +1027,7 @@ code{background:#f0f0ec;padding:1px 5px;border-radius:4px;font-size:13px}
 input[type=text]{font:inherit;padding:6px 9px;border:1px solid var(--bd);
  border-radius:6px;width:100%;max-width:480px}
 </style></head><body>
-<header><h1>Photo Merge</h1>
+<header><h1>Fantastic Photos</h1>
 <div class="sub">Runs on your machine. Nothing is uploaded. Originals are only ever copied, never moved or deleted.</div>
 </header><main>
 
@@ -1477,7 +1477,7 @@ class Server(socketserver.ThreadingTCPServer):
 if __name__ == "__main__":
     STATE["sources"] = []
     url = f"http://127.0.0.1:{PORT}/"
-    print(f"Photo Merge running at {url}")
+    print(f"Fantastic Photos running at {url}")
     print("Press Ctrl+C to stop.")
     threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:

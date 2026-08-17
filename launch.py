@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Launcher for Photo Merge.
+Launcher for Fantastic Photos.
 
-Checks whether a newer photomerge.py has been published, asks before replacing
+Checks whether a newer fantastic_photos.py has been published, asks before replacing
 the local copy, then starts the app.
 
 Standard library only, so it runs before anything is installed.
@@ -17,16 +17,16 @@ import urllib.error
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-APP = os.path.join(HERE, "photomerge.py")
-BACKUP = os.path.join(HERE, "photomerge.previous.py")
+APP = os.path.join(HERE, "fantastic_photos.py")
+BACKUP = os.path.join(HERE, "fantastic_photos.previous.py")
 
 # Where new versions are published. A GitHub raw URL or an S3 object URL both
 # work — it only needs to be a plain HTTPS GET that returns the file.
-#   GitHub: https://raw.githubusercontent.com/<user>/<repo>/main/photomerge.py
-#   S3:     https://<bucket>.s3.<region>.amazonaws.com/photomerge.py
+#   GitHub: https://raw.githubusercontent.com/<user>/<repo>/main/fantastic_photos.py
+#   S3:     https://<bucket>.s3.<region>.amazonaws.com/fantastic_photos.py
 UPDATE_URL = os.environ.get(
-    "PHOTOMERGE_UPDATE_URL",
-    "https://raw.githubusercontent.com/Iamrodos/photo-merge/main/photomerge.py",
+    "FANTASTIC_PHOTOS_UPDATE_URL",
+    "https://raw.githubusercontent.com/Iamrodos/fantastic-photos/main/fantastic_photos.py",
 )
 
 TIMEOUT = 6
@@ -77,7 +77,7 @@ def ask(question, default_yes=True):
 
 def check_for_update():
     have = local_version()
-    print(f"Photo Merge {have or '(unknown version)'}")
+    print(f"Fantastic Photos {have or '(unknown version)'}")
 
     text, info = fetch_remote()
     if text is None:
@@ -110,7 +110,7 @@ def check_for_update():
 def run_app():
     if not os.path.exists(APP):
         print(f"\nCannot find {APP}")
-        print("Download photomerge.py into this folder and try again.")
+        print("Download fantastic_photos.py into this folder and try again.")
         return 1
 
     # uv reads the dependency block at the top of photomerge.py and provisions

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Photo Merge - macOS launcher. Double-click in Finder.
+# Fantastic Photos - macOS launcher. Double-click in Finder.
 cd "$(dirname "$0")"
 if ! command -v uv >/dev/null 2>&1; then
   echo

@@ -1,11 +1,11 @@
 @echo off
-rem  Photo Merge - Windows launcher
+rem  Fantastic Photos - Windows launcher
 rem  Double-click this file. It checks for a new version, asks before updating,
 rem  then starts the app and opens your browser.
 
 setlocal
 cd /d "%~dp0"
-title Photo Merge
+title Fantastic Photos
 
 where uv >nul 2>&1
 if errorlevel 1 goto nouv

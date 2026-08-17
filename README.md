@@ -1,7 +1,8 @@
-# Photo Merge
+# Fantastic Photos
 
-Merges several folders of photos into one, renaming each file by the date and
-time it was taken, and pointing out duplicates, crops and bursts along the way.
+Tidies up photo libraries. Merges several folders into one, renames each file
+by the date and time it was taken, and points out duplicates, crops and bursts
+along the way.
 
 Runs entirely on your own machine. Your photos are never uploaded anywhere.
 **Originals are only ever copied — never moved, renamed or deleted.**
