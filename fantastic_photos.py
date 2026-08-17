@@ -47,7 +47,7 @@ except ImportError:
 
 from multiprocessing import Pool, cpu_count
 
-__version__ = "0.13.0"
+__version__ = "0.14.0"
 
 PORT = 8756
 IMG_EXT = {".jpg", ".jpeg", ".png", ".heic", ".tif", ".tiff", ".webp", ".bmp"}
@@ -1150,7 +1150,7 @@ input[type=text]{font:inherit;padding:6px 9px;border:1px solid var(--bd);
 </div>
 
 </main><script>
-let HOME='', SEP='/', S={};
+let HOME='', SEP='/', S={}, ROOTS=[];
 async function j(u,o){const r=await fetch(u,o);return r.json()}
 async function post(u,b){return j(u,{method:'POST',headers:{'Content-Type':'application/json'},
  body:JSON.stringify(b||{})})}
@@ -1189,9 +1189,9 @@ async function loadRoots(){
  const r=await j('/api/roots'); SEP=r.sep||SEP;
  ['src','dst'].forEach(w=>{
   const el=document.getElementById(w+'_roots'); if(!el)return;
-  el.innerHTML=r.roots.map(x=>'<button class="small" onclick="B.'+w+
-   '.go(\''+x.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+
-   x.name+'</button>').join(' ')})
+  ROOTS=r.roots;
+  el.innerHTML=r.roots.map((x,i)=>'<button class="small" onclick="B.'+w+
+   '.go(ROOTS['+i+'].path)">'+esc(x.name)+'</button>').join(' ')})
 }
 function tog(which){
  const el=document.getElementById(which+'_pick');
@@ -1205,9 +1205,10 @@ function tog(which){
 function add(p){if(!sources.includes(p)){sources.push(p);post('/api/sources',{sources});draw()}}
 function rm(p){sources=sources.filter(x=>x!==p);post('/api/sources',{sources});draw()}
 function draw(){document.getElementById('chosen').innerHTML=sources.length?
- sources.map(p=>'<div class="chosen"><span>'+p+'</span><button class="small" onclick="rm(\''+
- p.replace(/'/g,"\\'")+'\')">remove</button></div>').join('')
+ sources.map((p,i)=>'<div class="chosen"><span>'+esc(p)+
+ '</span><button class="small" onclick="rmAt('+i+')">remove</button></div>').join('')
  :'<div class="sub" style="padding:3px 0">none chosen yet</div>'}
+function rmAt(i){sources.splice(i,1);post('/api/sources',{sources});draw()}
 function drawdest(v){
  const box=document.getElementById('chosendest'); if(box)box.innerHTML='';
  const f=document.getElementById('destpath'); if(f)f.value=v||'';
@@ -1318,10 +1319,11 @@ function wireDrop(id, idle, onPaths){
    if(found&&found.matches.length===1){paths=[found.matches[0]]}
    else if(found&&found.matches.length>1){
     dz.classList.add('bad');
-    dz.innerHTML='Found several folders called <b>'+found.name+'</b>. '+
-     'Pick the right one below:<br>'+found.matches.map(m=>
+    FOUND[dz.id]=found.matches;
+    dz.innerHTML='Found several folders called <b>'+esc(found.name)+'</b>. '+
+     'Pick the right one below:<br>'+found.matches.map((m,i)=>
       '<button class="small" style="margin:4px 3px 0 0" onclick="pickFound(\''+
-      dz.id+'\',\''+m.replace(/'/g,"\\'")+'\')">'+m+'</button>').join('');
+      jsq(dz.id)+'\','+i+')">'+esc(m)+'</button>').join('');
     return}
    else{
     dz.classList.add('bad');
@@ -1340,9 +1342,10 @@ function wireDrop(id, idle, onPaths){
  });
  DROPFN[id]=onPaths;
 }
-const DROPFN={};
-async function pickFound(zone, path){
+const DROPFN={}, FOUND={};
+async function pickFound(zone, i){
  const dz=document.getElementById(zone);
+ const path=(FOUND[zone]||[])[i]; if(path===undefined)return;
  dz.classList.remove('bad');
  dz.innerHTML=await DROPFN[zone]([path])||'done';
 }
@@ -1410,7 +1413,12 @@ async function poll(){S=await j('/api/state');
  const de2=document.getElementById('destecho'); if(de2)de2.textContent=S.dest;
 }
 
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+// Windows paths are full of backslashes, and a backslash inside a JavaScript
+// string literal starts an escape sequence. Anything going into an inline
+// handler must survive both the HTML parser and the JS parser.
+function jsq(s){return String(s).replace(/\\/g,'\\\\')
+ .replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;')}
 function renderGroups(){
  const box=document.getElementById('pairs'); box.innerHTML='';
  const G=S.groups||[];
@@ -1426,7 +1434,7 @@ function renderGroups(){
   const keep=new Set(g.members.filter(m=>raw.indexOf(m)>=0));
   const div=document.createElement('div'); div.className='card';
   const cls={'crop':'crop','burst':'burst','mixed':'mixed'}[g.kind]||'same';
-  const thumbs=g.members.map(m=>{
+  const thumbs=g.members.map((m,mi)=>{
    const bx=g.boxes[m]?('&box='+g.boxes[m].join(',')):'';
    const on=keep.has(m);
    // Inline styles rather than a CSS class: this is the signal the whole
@@ -1437,8 +1445,7 @@ function renderGroups(){
    const wrapStyle=on
      ? 'border:2px solid #2f6f4f;background:#f2f8f4'
      : 'border:2px dashed #c9c9c2;background:#f0f0ec';
-   const click=d.not_match?''
-     :' onclick="toggle(\''+g.id+'\',\''+m.replace(/'/g,"\\'")+'\')"';
+   const click=d.not_match?'':' onclick="toggle(\''+g.id+'\','+mi+')"';
    return '<figure class="member'+(d.not_match?'':' clickable')+'" style="'+wrapStyle+
      ';border-radius:7px;padding:7px;position:relative"'+click+' title="'+
      (on?'Click to skip this photo':'Click to keep this photo')+'">'+
@@ -1448,8 +1455,7 @@ function renderGroups(){
      esc((g.names&&g.names[m])||m)+'</figcaption>'+
     '<button class="small toggle '+(on?'on':'off')+'" '+
      (d.not_match?'disabled ':'')+
-     'onclick="event.stopPropagation();toggle(\''+g.id+'\',\''+
-     m.replace(/'/g,"\\'")+'\')">'+
+     'onclick="event.stopPropagation();toggle(\''+g.id+'\','+mi+')">'+
      (on?'\u2713 keeping \u2014 click to skip':'\u2717 skipped \u2014 click to keep')+
      '</button></figure>'}).join('');
   div.innerHTML=
@@ -1473,7 +1479,8 @@ function renderGroups(){
 function grp(id){return S.groups.find(g=>g.id===id)}
 async function send(id,keep,nm){await post('/api/decide',{id,keep,not_match:nm});
  S.decisions[id]={keep,not_match:nm}; renderGroups(); renderPlan()}
-function toggle(id,m){const g=grp(id); if(!g)return;
+function toggle(id,mi){const g=grp(id); if(!g)return;
+ const m=g.members[mi]; if(m===undefined)return;
  const d=S.decisions[id]||{keep:g.members,not_match:false};
  if(d.not_match)return;
  const raw=d.keep||g.members;
