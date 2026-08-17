@@ -47,7 +47,7 @@ except ImportError:
 
 from multiprocessing import Pool, cpu_count
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 
 PORT = 8756
 IMG_EXT = {".jpg", ".jpeg", ".png", ".heic", ".tif", ".tiff", ".webp", ".bmp"}
@@ -1032,11 +1032,14 @@ label.opt input{margin-right:7px}
 .imgs figure{margin:0;max-width:300px}
 .imgs img{max-width:300px;border-radius:5px;display:block;background:#eee}
 .imgs figcaption{font-size:12px;color:var(--mut);margin-top:5px;word-break:break-all}
-.imgs figure.member{max-width:230px}
-.imgs figure.member img{max-width:230px;transition:opacity .15s}
-.imgs figure.member.off img{opacity:.32;filter:grayscale(1)}
-button.toggle{margin-top:5px;width:100%}
+.imgs figure.member{max-width:240px}
+.imgs figure.member img{max-width:224px;transition:opacity .15s,filter .15s}
+.skipmark{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);
+ text-align:center;font-weight:800;font-size:15px;letter-spacing:.16em;
+ color:#fff;background:rgba(157,17,17,.82);padding:5px 0;pointer-events:none}
+button.toggle{margin-top:6px;width:100%;font-size:12px}
 button.toggle.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.toggle.off{background:#fff;color:var(--warn);border-color:#e0b4b4}
 .rels{font-size:12.5px;color:var(--mut);margin:2px 0 10px;line-height:1.6}
 .choices{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 .choices button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -1421,13 +1424,25 @@ function renderGroups(){
   const thumbs=g.members.map(m=>{
    const bx=g.boxes[m]?('&box='+g.boxes[m].join(',')):'';
    const on=keep.has(m);
-   return '<figure class="member'+(on?'':' off')+'">'+
-    '<img src="/api/thumb?p='+encodeURIComponent(m)+bx+'">'+
-    '<figcaption>'+esc((g.names&&g.names[m])||m)+'</figcaption>'+
-    '<button class="small toggle '+(on?'on':'')+'" '+
+   // Inline styles rather than a CSS class: this is the signal the whole
+   // review depends on, so it must not be defeated by the cascade.
+   const imgStyle=on
+     ? 'opacity:1;filter:none'
+     : 'opacity:.25;filter:grayscale(1)';
+   const wrapStyle=on
+     ? 'border:2px solid #2f6f4f;background:#f2f8f4'
+     : 'border:2px dashed #c9c9c2;background:#f0f0ec';
+   return '<figure class="member" style="'+wrapStyle+
+     ';border-radius:7px;padding:7px;position:relative">'+
+    '<img style="'+imgStyle+'" src="/api/thumb?p='+encodeURIComponent(m)+bx+'">'+
+    (on?'':'<div class="skipmark">SKIPPED</div>')+
+    '<figcaption style="'+(on?'':'text-decoration:line-through;color:#999')+'">'+
+     esc((g.names&&g.names[m])||m)+'</figcaption>'+
+    '<button class="small toggle '+(on?'on':'off')+'" '+
      (d.not_match?'disabled ':'')+
      'onclick="toggle(\''+g.id+'\',\''+m.replace(/'/g,"\\'")+'\')">'+
-     (on?'\u2713 keeping':'skipped')+'</button></figure>'}).join('');
+     (on?'\u2713 keeping \u2014 click to skip':'\u2717 skipped \u2014 click to keep')+
+     '</button></figure>'}).join('');
   div.innerHTML=
    '<div class="hd"><span class="badge '+cls+'">'+g.kind+' &middot; '+
     g.members.length+' photos</span>'+
