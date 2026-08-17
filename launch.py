@@ -113,7 +113,7 @@ def run_app():
         print("Download fantastic_photos.py into this folder and try again.")
         return 1
 
-    # uv reads the dependency block at the top of photomerge.py and provisions
+    # uv reads the dependency block at the top of fantastic_photos.py and provisions
     # everything itself. Fall back to the current interpreter if uv is absent.
     if shutil.which("uv"):
         cmd = ["uv", "run", APP]

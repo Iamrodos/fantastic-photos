@@ -41,7 +41,7 @@ try:
 except ImportError:
     sys.stderr.write(
         "\nnumpy is required.\n"
-        "  With uv:  uv run photomerge.py   (installs it for you)\n"
+        "  With uv:  uv run fantastic_photos.py   (installs it for you)\n"
         "  Or:       pip install numpy\n\n")
     raise SystemExit(1)
 

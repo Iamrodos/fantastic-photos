@@ -110,7 +110,7 @@ the tool did.
 
 `run.bat` checks whether a newer version has been published and asks before
 replacing your copy. Say no and it carries on with what you have. The previous
-version is kept as `photomerge.previous.py` in case you want it back.
+version is kept as `fantastic_photos.previous.py` in case you want it back.
 
 ---
 
