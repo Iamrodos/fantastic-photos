@@ -1,0 +1,31 @@
+# Photos and working data — never commit these
+202409*/
+testset/
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
+*.png
+*.PNG
+*.mov
+*.MOV
+*.heic
+*.HEIC
+
+# Generated output
+review.html
+merged*/
+_manifest.csv
+features.json
+hashcache.json
+*.previous.py
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
