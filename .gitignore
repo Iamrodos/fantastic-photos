@@ -12,6 +12,9 @@ testset/
 *.heic
 *.HEIC
 
+# Local working notes — deliberately not published
+NOTES.md
+
 # Generated output
 review.html
 merged*/
