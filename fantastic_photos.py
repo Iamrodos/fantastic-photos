@@ -47,7 +47,7 @@ except ImportError:
 
 from multiprocessing import Pool, cpu_count
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 PORT = 8756
 IMG_EXT = {".jpg", ".jpeg", ".png", ".heic", ".tif", ".tiff", ".webp", ".bmp"}
@@ -1474,15 +1474,43 @@ class Server(socketserver.ThreadingTCPServer):
     daemon_threads = True
 
 
+def already_running(port):
+    """Is OUR app on this port, as opposed to something unrelated?"""
+    try:
+        import urllib.request
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/api/roots", timeout=1.5) as r:
+            return json.loads(r.read()).get("version") is not None
+    except Exception:
+        return False
+
+
 def start_server():
-    """Bind the first free port, so a second copy doesn't fail obscurely."""
+    """Bind a port, but don't quietly start a duplicate.
+
+    Double-clicking the launcher twice should bring you back to the copy that
+    is already running, not spawn another one on a different port and leave
+    you wondering which browser tab is real.
+    """
     last = None
     for port in range(PORT, PORT + 10):
         try:
             return Server(("127.0.0.1", port), Handler), port
         except OSError as e:
             last = e
-            continue
+            if already_running(port):
+                url = f"http://localhost:{port}/"
+                print()
+                print("  " + "=" * 58)
+                print("   Fantastic Photos is already running.")
+                print()
+                print(f"       {url}")
+                print()
+                print("   Reopening that in your browser. Nothing new was started.")
+                print("  " + "=" * 58)
+                print()
+                webbrowser.open(url)
+                raise SystemExit(0)
     raise SystemExit(f"Could not find a free port between {PORT} and {PORT + 9}: {last}")
 
 
